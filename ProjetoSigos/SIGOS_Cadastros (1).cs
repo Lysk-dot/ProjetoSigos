@@ -1,6 +1,3 @@
-// SIGOS - Cadastros e Interface (tema azul e branco) - ARQUIVO UNICO
-// Adicione este arquivo ao projeto SIGOS e substitua o Program.cs. Mantenha o seu Conexao.cs.
-
 using MySql.Data.MySqlClient;
 using SIGOS.Dados;
 using SIGOS.Visual;
@@ -14,11 +11,7 @@ using System.Text;
 // ===================== Dados/Banco.cs =====================
 namespace SIGOS.Dados
 {
-    /// <summary>
-    /// Atalhos para falar com o banco. Todas as telas usam estes métodos,
-    /// sempre com PARÂMETROS (@nome) para proteger contra SQL injection.
-    /// Precisa da sua classe Conexao (pasta Dados) com o método Criar().
-    /// </summary>
+
     public static class Banco
     {
         /// <summary>SELECT que devolve uma tabela (usada no DataGridView).</summary>
@@ -63,10 +56,7 @@ namespace SIGOS.Dados
 // ===================== Dados/RegraNegocioException.cs =====================
 namespace SIGOS.Dados
 {
-    /// <summary>
-    /// Erro "esperado": o usuário digitou algo errado ou quebrou uma regra de negócio.
-    /// A mensagem aparece numa caixinha e o cursor volta para o campo indicado.
-    /// </summary>
+
     public class RegraNegocioException : Exception
     {
         public Control? Foco { get; }
@@ -81,10 +71,7 @@ namespace SIGOS.Dados
 // ===================== Dados/Seguranca.cs =====================
 namespace SIGOS.Dados
 {
-    /// <summary>
-    /// Hash de senha: "tritura" a senha para que o banco nunca guarde o texto puro.
-    /// Gera o mesmo resultado do SQL:  SHA2('senha', 256)
-    /// </summary>
+
     public static class Seguranca
     {
         public static string GerarHash(string senha)
@@ -251,10 +238,7 @@ namespace SIGOS.Dados
 // ===================== Visual/Estilo.cs =====================
 namespace SIGOS.Visual
 {
-    /// <summary>
-    /// Cores, fontes e estilos de TODAS as telas (tema azul e branco).
-    /// Mudou uma cor aqui? O sistema inteiro muda junto.
-    /// </summary>
+
     public static class Estilo
     {
         // ---------- CORES ----------
@@ -408,18 +392,12 @@ namespace SIGOS.Visual
 // ===================== Visual/BotaoMenu.cs =====================
 namespace SIGOS.Visual
 {
-    /// <summary>
-    /// Botão do menu lateral: ícone + texto, destaque ao passar o mouse
-    /// e uma barrinha branca quando é a tela aberta.
-    /// Os ícones são caracteres da fonte "Segoe MDL2 Assets" (já vem no Windows 10 e 11).
-    /// </summary>
+
     public class BotaoMenu : Button
     {
         private bool _ativo;
         private bool _mouseEmCima;
 
-        // Estes atributos dizem ao Visual Studio para NÃO salvar a propriedade no designer
-        // (o .NET 10 exige isso em propriedades públicas de controles - aviso WFO1000).
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string Icone { get; set; } = "";
@@ -485,12 +463,7 @@ namespace SIGOS.Visual
 // ===================== Telas/FormCadastroBase.cs =====================
 namespace SIGOS.Telas
 {
-    /// <summary>
-    /// MOLDE das telas de cadastro (clientes, técnicos, equipamentos, serviços, usuários).
-    /// Ele monta o visual (título, campos à esquerda, tabela com pesquisa à direita)
-    /// e cuida dos botões Cadastrar / Editar / Excluir / Limpar.
-    /// Cada tela filha só diz QUAIS campos tem e QUAL SQL usar.
-    /// </summary>
+
     [DesignerCategory("Code")]
     public abstract class FormCadastroBase : Form
     {
@@ -555,9 +528,8 @@ namespace SIGOS.Telas
             };
         }
 
-        // =====================================================================
-        //  MONTAGEM DO VISUAL
-        // =====================================================================
+        // ===========================  MONTAGEM DO VISUAL  ===========================
+
         private void ConstruirTela(string titulo, string subtitulo)
         {
             // ----- Cabeçalho (título + subtítulo + linha) -----
@@ -660,12 +632,11 @@ namespace SIGOS.Telas
             btnLimpar.Click += (s, e) => LimparTudo();
             grid.CellClick += Grid_CellClick;
             grid.CellFormatting += Grid_CellFormatting;
+            grid.DataError += (s, e) => e.ThrowException = false;   // nunca derruba a tela por erro de formato de célula
             txtPesquisa.TextChanged += (s, e) => Carregar();
         }
 
-        // =====================================================================
-        //  MÉTODOS PARA AS TELAS FILHAS MONTAREM OS CAMPOS
-        // =====================================================================
+        // =========================== MÉTODOS PARA AS TELAS FILHAS MONTAREM OS CAMPOS ===========================
 
         /// <summary>Coloca um rótulo + campo no cartão da esquerda.</summary>
         protected void AdicionarCampo(string rotulo, Control campo, int altura = 30)
@@ -730,9 +701,7 @@ namespace SIGOS.Telas
             return linha.Cells[coluna].Value?.ToString() ?? "";
         }
 
-        // =====================================================================
-        //  FUNCIONAMENTO
-        // =====================================================================
+        //  =========================== FUNCIONAMENTO ===========================
 
         protected void Carregar()
         {
@@ -740,6 +709,20 @@ namespace SIGOS.Telas
             {
                 DataTable tabela = Consultar(txtPesquisa.Text.Trim());
                 grid.DataSource = tabela;
+
+                // Coluna booleana vira checkbox por padrão; troca por texto para mostrar "Sim/Não"
+                // (colocar texto numa célula de checkbox causa "Formato incorreto da célula").
+                if (grid.Columns["ativo"] is DataGridViewCheckBoxColumn colAtivo)
+                {
+                    int posicao = colAtivo.Index;
+                    grid.Columns.RemoveAt(posicao);
+                    grid.Columns.Insert(posicao, new DataGridViewTextBoxColumn
+                    {
+                        Name = "ativo",
+                        DataPropertyName = "ativo",
+                        HeaderText = "Ativo"
+                    });
+                }
 
                 foreach (string nome in ColunasOcultas)
                     if (grid.Columns.Contains(nome))
@@ -1746,10 +1729,7 @@ namespace SIGOS.Telas
 // ===================== Telas/FormEmBreve.cs =====================
 namespace SIGOS.Telas
 {
-    /// <summary>
-    /// Tela provisória para módulos que ainda não foram feitos (Ordem de Serviço, Consulta).
-    /// Quando o módulo ficar pronto, troque no FormPrincipal: () => new FormEmBreve(...) por () => new FormOrdemServico().
-    /// </summary>
+
     [DesignerCategory("Code")]
     public class FormEmBreve : Form
     {
@@ -1790,10 +1770,6 @@ namespace SIGOS.Telas
 // ===================== Telas/FormPrincipal.cs =====================
 namespace SIGOS.Telas
 {
-    /// <summary>
-    /// Tela principal: menu lateral azul à esquerda e, à direita, a tela escolhida.
-    /// Para ligar um módulo novo (ex.: Ordem de Serviço), troque a linha dele na lista "itens".
-    /// </summary>
     [DesignerCategory("Code")]
     public class FormPrincipal : Form
     {
@@ -1811,7 +1787,6 @@ namespace SIGOS.Telas
             StartPosition = FormStartPosition.CenterScreen;
             WindowState = FormWindowState.Maximized;
 
-            // ===== Menu: texto, ícone (código da fonte Segoe MDL2 Assets) e a tela que abre =====
             var itens = new (string Texto, string Icone, Func<Form> Criar)[]
             {
                 ("Início",           "", () => new FormInicio()),
@@ -1819,8 +1794,8 @@ namespace SIGOS.Telas
                 ("Equipamentos",     "", () => new FormEquipamentos()),
                 ("Técnicos",         "", () => new FormTecnicos()),
                 ("Serviços",         "", () => new FormServicos()),
-                ("Ordem de Serviço", "", () => new FormEmBreve("Ordem de Serviço", "Módulo em desenvolvimento.")),
-                ("Consulta",         "", () => new FormEmBreve("Consulta", "Módulo em desenvolvimento.")),
+                ("Ordem de Serviço", "", () => new FormOrdemServico()),
+                ("Consulta",         "", () => new FormConsulta()),
                 ("Usuários",         "", () => new FormUsuarios())
             };
 
@@ -1850,21 +1825,17 @@ namespace SIGOS.Telas
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
-            // REGRA DO DOCK = TOP: o último controle adicionado fica no TOPO.
-            // Por isso adicionamos de trás para frente, e o logo por último.
             pnlMenu.Controls.Add(btnSair);
             for (int i = botoes.Count - 1; i >= 0; i--)
                 pnlMenu.Controls.Add(botoes[i]);
             pnlMenu.Controls.Add(logo);
 
-            // O painel que preenche (Fill) é adicionado primeiro.
             Controls.Add(pnlConteudo);
             Controls.Add(pnlMenu);
 
             Load += (s, e) => AbrirTela(botoes[0], itens[0].Criar);
         }
 
-        /// <summary>Mostra uma tela dentro do painel branco e destaca o botão correspondente.</summary>
         private void AbrirTela(BotaoMenu botao, Func<Form> criar)
         {
             foreach (var b in botoes) b.Ativo = false;
